@@ -1,0 +1,160 @@
+version: '3.8'
+
+services:
+  # postgres for metadata storage
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ghost_tracer
+      POSTGRES_USER: ghost_tracer
+      POSTGRES_PASSWORD: ghost_tracer
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ghost_tracer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # qdrant for vector storage
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # zookeeper for kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  # ollama for local LLM
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+
+  # ghost tracer api server
+  ghost_tracer-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # db
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ghost_tracer
+      POSTGRES_USER: ghost_tracer
+      POSTGRES_PASSWORD: ghost_tracer
+      
+      # redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # vector store
+      VECTOR_STORE_TYPE: qdrant
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      
+      # kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      
+      # LLM (use ollama by default)
+      LLM_PROVIDER: ollama
+      OLLAMA_HOST: ollama
+      OLLAMA_PORT: 11434
+      OLLAMA_MODEL: mistral:7b
+      
+      # api config
+      ghost_tracer_API_HOST: 0.0.0.0
+      ghost_tracer_API_PORT: 8000
+      ghost_tracer_DEBUG: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    volumes:
+      - ./:/app
+    command: python -m ghost_tracer.api.main
+
+  # grafana for visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+  zookeeper_data:
+  kafka_data:
+  ollama_data:
+  grafana_data:
+
+networks:
+  default:
+    name: ghost_tracer-network 
