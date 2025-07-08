@@ -5,8 +5,8 @@ import structlog
 from sentence_transformers import SentenceTransformer
 import torch
 
-from ..config import get_settings
-from ..models.log_entry import LogEntry
+from config import get_settings
+from models.log_entry import LogEntry
 
 logger = structlog.get_logger(__name__)
 

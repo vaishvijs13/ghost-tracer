@@ -1,6 +1,7 @@
 import os
 from typing import Optional, List
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings
+from pydantic import Field, ConfigDict
 from enum import Enum
 
 
@@ -39,9 +40,15 @@ class Settings(BaseSettings):
     def redis_url(self) -> str:
         return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
     
-    kafka_bootstrap_servers: List[str] = Field(default=["localhost:9092"], env="KAFKA_BOOTSTRAP_SERVERS")
+    kafka_bootstrap_servers: str = Field(default="localhost:9092", env="KAFKA_BOOTSTRAP_SERVERS")
     kafka_log_topic: str = Field(default="ghost_tracer-logs", env="KAFKA_LOG_TOPIC")
     kafka_consumer_group: str = Field(default="ghost_tracer-consumers", env="KAFKA_CONSUMER_GROUP")
+    
+    @property
+    def kafka_servers_list(self) -> List[str]:
+        if isinstance(self.kafka_bootstrap_servers, str):
+            return [s.strip() for s in self.kafka_bootstrap_servers.split(',')]
+        return self.kafka_bootstrap_servers
     
     vector_store_type: VectorStore = Field(default=VectorStore.QDRANT, env="VECTOR_STORE_TYPE")
     qdrant_host: str = Field(default="localhost", env="QDRANT_HOST")
@@ -73,9 +80,11 @@ class Settings(BaseSettings):
     data_retention_days: int = Field(default=30, env="DATA_RETENTION_DAYS")
     max_vector_collection_size: int = Field(default=1000000, env="MAX_VECTOR_COLLECTION_SIZE")
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
 
 settings = Settings()

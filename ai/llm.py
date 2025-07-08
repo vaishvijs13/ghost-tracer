@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any, List
 import structlog
 from abc import ABC, abstractmethod
 
-from ..config import get_settings, LLMProvider
+from config import get_settings, LLMProvider
 
 logger = structlog.get_logger(__name__)
 
@@ -358,24 +358,6 @@ Focus on actionable insights and concrete evidence from the logs."""
         except Exception as e:
             logger.error("Root cause analysis failed", error=str(e))
             raise
-    
-    def _get_system_message(self, analysis_type: str) -> str:
-        messages = {
-            "general": "You are an expert system administrator analyzing logs for insights.",
-            "error": "You are troubleshooting system errors. Focus on identifying root causes.",
-            "performance": "You are analyzing system performance. Focus on bottlenecks and optimization opportunities.",
-            "security": "You are analyzing logs for security issues. Focus on potential threats and anomalies."
-        }
-        return messages.get(analysis_type, messages["general"])
-    
-    def _build_analysis_prompt(self, logs_context: str, query: str, analysis_type: str) -> str:
-        return f"""Analyze the following logs to answer this question: "{query}"
-
-LOGS:
-{logs_context}
-
-Please provide a detailed analysis focusing on {analysis_type} aspects. 
-Include specific evidence from the logs and actionable recommendations."""
     
     def _parse_root_cause_response(self, response: str) -> Dict[str, Any]:
         return {
