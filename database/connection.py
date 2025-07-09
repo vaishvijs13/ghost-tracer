@@ -13,7 +13,6 @@ logger = structlog.get_logger(__name__)
 class Base(DeclarativeBase):
     pass
 
-
 class DatabaseManager:
     def __init__(self):
         self.settings = get_settings()
@@ -22,7 +21,6 @@ class DatabaseManager:
         
     async def initialize(self):
         try:
-            # Create async engine
             database_url = self.settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
             
             self.engine = create_async_engine(

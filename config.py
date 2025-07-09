@@ -75,7 +75,6 @@ class Settings(BaseSettings):
     
     max_context_length: int = Field(default=4000, env="MAX_CONTEXT_LENGTH")
     summarization_chunk_size: int = Field(default=1000, env="SUMMARIZATION_CHUNK_SIZE")
-    anomaly_detection_threshold: float = Field(default=0.8, env="ANOMALY_DETECTION_THRESHOLD")
     
     data_retention_days: int = Field(default=30, env="DATA_RETENTION_DAYS")
     max_vector_collection_size: int = Field(default=1000000, env="MAX_VECTOR_COLLECTION_SIZE")

@@ -199,5 +199,63 @@ def chat(query: str, host: str, port: int):
     asyncio.run(chat_with_logs())
 
 
+@cli.command()
+@click.option('--window-minutes', default=30, help='Time window to analyze in minutes')
+@click.option('--services', help='Comma-separated list of services to analyze')
+@click.option('--sensitivity', default=0.7, help='Anomaly sensitivity (0.1-1.0)')
+@click.option('--host', default='localhost', help='API host')
+@click.option('--port', default=8000, help='API port')
+def detect_anomalies(window_minutes: int, services: str, sensitivity: float, host: str, port: int):
+    """Detect anomalies in system logs using AI and statistical analysis"""
+    async def run_anomaly_detection():
+        url = f"http://{host}:{port}/api/v1/analysis/anomaly-detection"
+        params = {
+            'time_window_minutes': window_minutes,
+            'sensitivity': sensitivity
+        }
+        
+        if services:
+            service_list = [s.strip() for s in services.split(',')]
+            params['services'] = service_list
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        
+                        click.echo(f"Anomaly Detection Results")
+                        click.echo(f"Time Window: {data['time_window']['duration_minutes']} minutes")
+                        click.echo(f"System Health Score: {data['system_health_score']:.2f}/1.0")
+                        click.echo(f"Anomalies Detected: {data['anomalies_detected']}")
+                        click.echo(f"High Severity: {data['high_severity_count']}")
+                        click.echo()
+                        
+                        if data['anomalies']:
+                            click.echo("🚨 Detected Anomalies:")
+                            for i, anomaly in enumerate(data['anomalies'], 1):
+                                severity_emoji = "🔴" if anomaly.get('severity_score', 0) > 0.7 else "🟡" if anomaly.get('severity_score', 0) > 0.4 else "🟢"
+                                click.echo(f"{severity_emoji} {i}. {anomaly['title']}")
+                                click.echo(f"   {anomaly['description']}")
+                                click.echo(f"   Severity: {anomaly.get('severity_score', 0):.2f}")
+                                if 'change_percentage' in anomaly:
+                                    click.echo(f"   Change: {anomaly['change_percentage']:+.1f}%")
+                                click.echo()
+                        else:
+                            click.echo("No anomalies detected - system appears healthy")
+                        
+                        if data['recommendations']:
+                            click.echo("Recommendations:")
+                            for rec in data['recommendations']:
+                                click.echo(f"   {rec}")
+                        
+                    else:
+                        click.echo(f"Anomaly detection failed: {response.status}")
+        except Exception as e:
+            click.echo(f"Error: {e}")
+    
+    asyncio.run(run_anomaly_detection())
+
+
 if __name__ == '__main__':
     cli() 

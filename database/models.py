@@ -17,32 +17,25 @@ class LogEntryModel(Base):
     message = Column(Text, nullable=False)
     service_name = Column(String(255), nullable=False, index=True)
     
-    # Trace information
     trace_id = Column(String(255), nullable=True, index=True)
     span_id = Column(String(255), nullable=True, index=True)
     
-    # Structured data - stored as JSON
     labels = Column(JSON, nullable=True)
     fields = Column(JSON, nullable=True)
     
-    # Context information
     host = Column(String(255), nullable=True)
     pod = Column(String(255), nullable=True)
     namespace = Column(String(255), nullable=True)
     container = Column(String(255), nullable=True)
     
-    # Error context
     error = Column(Text, nullable=True)
     stack_trace = Column(Text, nullable=True)
     
-    # Processing metadata
     ingested_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     processed_at = Column(DateTime(timezone=True), nullable=True)
     
-    # Vector embedding - stored as array of floats
     embedding_vector = Column(ARRAY(Float), nullable=True)
     
-    # Create indexes for common queries
     __table_args__ = (
         Index('ix_log_entries_timestamp_service', 'timestamp', 'service_name'),
         Index('ix_log_entries_level_timestamp', 'level', 'timestamp'),
@@ -66,12 +59,10 @@ class TraceSpanModel(Base):
     end_time = Column(DateTime(timezone=True), nullable=True)
     duration_ms = Column(Float, nullable=True)
     
-    # Structured data
     tags = Column(JSON, nullable=True)
     logs = Column(JSON, nullable=True)
     status = Column(String(50), default="OK", nullable=False)
     
-    # Processing metadata
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     
     __table_args__ = (
