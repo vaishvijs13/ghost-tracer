@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     postgres_port: int = Field(default=5432, env="POSTGRES_PORT")
     postgres_db: str = Field(default="ghost_tracer", env="POSTGRES_DB")
     postgres_user: str = Field(default="ghost_tracer", env="POSTGRES_USER")
-    postgres_password: str = Field(default="ghost_tracer", env="POSTGRES_PASSWORD")
+    postgres_password: str = Field(default="password", env="POSTGRES_PASSWORD")
     
     @property
     def database_url(self) -> str:

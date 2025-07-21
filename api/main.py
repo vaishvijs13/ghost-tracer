@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any, Callable
+from typing import List, Optional, Any, Callable
 from functools import wraps
 import structlog
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Query
@@ -25,7 +25,6 @@ db_manager: Optional[DatabaseManager] = None
 
 
 def handle_api_errors(error_msg: str):
-    """Decorator to handle common API errors with consistent logging"""
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -41,7 +40,6 @@ def handle_api_errors(error_msg: str):
 
 
 def format_logs_for_llm(logs_data: List[Any], limit: Optional[int] = None) -> str:
-    """Common function to format logs for LLM consumption"""
     logs_to_format = logs_data[:limit] if limit else logs_data
     return "\n".join([
         f"[{log.timestamp}] {log.level} {log.service_name}: {log.message}"
@@ -50,7 +48,6 @@ def format_logs_for_llm(logs_data: List[Any], limit: Optional[int] = None) -> st
 
 
 def create_search_result_item(log_model: Any, relevance_score: float = 1.0, similarity_score: Optional[float] = None) -> SearchResultItem:
-    """Common function to create SearchResultItem from log model"""
     return SearchResultItem(
         log_id=log_model.id,
         relevance_score=relevance_score,
@@ -64,20 +61,18 @@ def create_search_result_item(log_model: Any, relevance_score: float = 1.0, simi
 
 
 def extract_search_filters(query: SearchQuery) -> tuple[Optional[datetime], Optional[datetime], Optional[List[str]]]:
-    """Extract common filter parameters from search query"""
     if not query.filters:
         return None, None, None
     return query.filters.time_range_start, query.filters.time_range_end, query.filters.services
 
 
 async def fetch_logs_with_repo(
-    time_start: datetime,
+time_start: datetime,
     time_end: datetime,
     services: Optional[List[str]] = None,
     levels: Optional[List[str]] = None,
     limit: int = 1000
 ) -> List[Any]:
-    """Common function to fetch logs from database"""
     async with get_db_session() as session:
         log_repo = LogRepository(session)
         return await log_repo.get_logs_by_time_range(
