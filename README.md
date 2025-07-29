@@ -1,3 +1,3 @@
 # Distributed Systems Debugging Assistant
 
-![Uploading Screenshot 2025-07-29 at 12.56.04 AM.png…]()
+<img width="1278" height="912" alt="image" src="https://github.com/user-attachments/assets/be00ac02-329e-4a3a-800e-578c871194d8" />
